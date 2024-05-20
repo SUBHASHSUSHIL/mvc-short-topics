@@ -1,0 +1,96 @@
+//Dropdown Binding
+//Database
+create database CascadingDropdownlist1;
+use CascadingDropdownlist1
+
+create table Country(CountryId int identity(1,1) primary key,Country_Name varchar(max) not null);
+create table State(StateId int identity(1,1) primary key,State_Name varchar(max) not null,CountryId int foreign key references Country(CountryId));
+
+insert into Country(Country_Name) values ('India'),('Pakistan'),('Switzerland');
+insert into State(State_Name,CountryId) values ('Bihar',1),('Uttar Pradesh',1),('Hydrabad',2),('Karanchi',2);
+
+//create project mvc 
+1.Step:->install bootstrap and jquery
+2.Step:-> Models right click ->Add -> new item -> Data -> Ado .net EntityFramework -> SqlConnectity
+3.Step:->create ModelClass
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+namespace Cascading1.Models
+{
+    public class CountryStateViewModel
+    {
+        public int CountryId { get; set; }
+        public int StateId { get; set; }
+    }
+}
+
+
+//Controller
+
+using Cascading1.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+
+namespace Cascading1.Controllers
+{
+    public class HomeController : Controller
+    {
+        CascadingDropdownlist1Entities db = new CascadingDropdownlist1Entities();
+        // GET: Home
+        public ActionResult Index()
+        {
+            List<Country> CountryList = db.Countries.ToList();
+            ViewBag.CountryList = new SelectList(CountryList, "CountryId", "Country_Name");
+            
+            return View();
+        }
+
+        public JsonResult GetStateList(int CountryId)
+        {
+            db.Configuration.ProxyCreationEnabled = false;
+            List<State> Statelist = db.States.Where(x => x.CountryId == CountryId).ToList();
+            return Json(Statelist,JsonRequestBehavior.AllowGet);
+        }
+    }
+}
+
+//View Index
+@model Cascading1.Models.CountryStateViewModel
+@{
+    ViewBag.Title = "Index";
+}
+
+<h2>Index</h2>
+<br />
+<hr />
+<div class="container">
+    <div class="form-group">
+        @if (ViewBag.CountryList != null)
+        {
+            @Html.DropDownListFor(model => model.CountryId, ViewBag.CountryList as SelectList,"--Select Country--",new {@class="form-control"})
+        }
+    </div>
+    <div class="form-group">
+        @Html.DropDownListFor(model => model.StateId,new SelectList(" "),"--Select State--",new {@class="form-control"})
+    </div>
+</div>
+
+<script src="~/Scripts/jquery-1.9.1.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $("#CountryId").change(function () {
+            $.get("/Home/GetStateList", { CountryId: $("#CountryId").val() }, function (data) {
+                $("#StateId").empty();
+                $.each(data, function (index, row) {
+                    $("#StateId").append("<option value='"+row.StateId+"'>"+row.State_Name+"</option>")
+                })
+            })
+        })
+    })
+</script>
