@@ -1,0 +1,175 @@
+Simple Mail Transfer Protocol (SMTP) :-
+=> SMTP is an application layer protocol. The client who wants to send the mail opens a TCP connection to the SMTP server and then sends the mail across the connection. The SMTP server is an always-on listening mode.
+As soon as it listens for a TCP connection from any client, the SMTP process initiates a connection through port 25.After successfully establishing a TCP connection the client process sends the mail instantly.
+
+# Create Code SMTP :- (then Four Stap Create SMTP) + Use in Timmer Span
+1.Create Model
+2.Controller
+3.View Generate
+4.SQL Server Connection
+
+1.Models
+using System;
+using System.ComponentModel.DataAnnotations;
+
+namespace WebApplication.Models
+{
+	public class EmailModel
+	{
+		[Required(ErrorMessage = "Receiver Email is required.")]
+		[EmailAddress(ErrorMessage = "Invalid Email Address.")]
+		public string ReceiverEmail { get; set; }
+
+		[Required(ErrorMessage = "Subject is required.")]
+		public string Subject { get; set; }
+
+		[Required(ErrorMessage = "Message is required.")]
+		public string Message { get; set; }
+
+		[Required(ErrorMessage = "Send Time is required.")]
+		[DataType(DataType.DateTime)]
+		public DateTime SendTime { get; set; }
+	}
+}
+
+2.Controllers
+using System;
+using System.Net;
+using System.Net.Mail;
+using System.Web.Mvc;
+using Hangfire;
+
+namespace WebApplication.Controllers
+{
+	public class EmailController : Controller
+	{
+		public ActionResult Form()
+		{
+			return View();
+		}
+
+		[HttpPost]
+		[ValidateAntiForgeryToken]
+		public ActionResult Form(string receiverEmail, string subject, string message, DateTime sendTime)
+		{
+			try
+			{
+				if (ModelState.IsValid)
+				{
+					BackgroundJob.Schedule(() => SendEmail("sushilthakur9792@gmail.com", "plwt eeaf bewp moyp", receiverEmail, subject, message), sendTime);
+
+					ViewBag.Message = "Email scheduled successfully!";
+					return View();
+				}
+			}
+			catch (Exception ex)
+			{
+				ViewBag.Error = "There was a problem scheduling the email: " + ex.Message;
+				Console.WriteLine("Error scheduling email: " + ex.ToString());
+			}
+
+			return View();
+		}
+		
+		public void SendEmail(string senderEmail, string password, string receiverEmail, string subject, string message)
+		{
+			var senderEmailObj = new MailAddress(senderEmail, "Demo Test");
+			var receiverEmailObj = new MailAddress(receiverEmail, "Receiver");
+
+			using (var smtp = new SmtpClient
+			{
+				Host = "smtp.gmail.com",
+				Port = 587,
+				EnableSsl = true,
+				DeliveryMethod = SmtpDeliveryMethod.Network,
+				UseDefaultCredentials = false,
+				Credentials = new NetworkCredential(senderEmailObj.Address, password)
+			})
+			{
+				using (var mailMessage = new MailMessage(senderEmailObj, receiverEmailObj)
+				{
+					Subject = subject,
+					Body = message,
+					IsBodyHtml = true
+				})
+				{
+					smtp.Send(mailMessage);
+				}
+			}
+		}
+	}
+}
+
+3.Views
+@model WebApplication.Models.EmailModel
+
+@{
+    ViewBag.Title = "Form";
+}
+
+<h2>Form</h2>
+
+@using (Html.BeginForm("Form", "Email", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+
+    <div class="form-horizontal">
+        @if (!string.IsNullOrEmpty(ViewBag.Error))
+        {
+            <div class="alert alert-danger">@ViewBag.Error</div>
+        }
+
+        <div class="form-group">
+            <label for="receiverEmail" class="col-sm-2 control-label">Receiver Email:</label>
+            <div class="col-sm-10">
+                <input type="email" class="form-control" id="receiverEmail" name="receiverEmail" placeholder="Enter receiver's email" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="subject" class="col-sm-2 control-label">Subject:</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="subject" name="subject" placeholder="Enter subject" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="message" class="col-sm-2 control-label">Message:</label>
+            <div class="col-sm-10">
+                <textarea class="form-control" id="message" name="message" rows="4" placeholder="Enter your message" required></textarea>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="sendTime" class="col-sm-2 control-label">Send Time:</label>
+            <div class="col-sm-10">
+                <input type="datetime-local" class="form-control" id="sendTime" name="sendTime" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="col-sm-offset-2 col-sm-10">
+                <button type="submit" class="btn btn-primary">Schedule Email</button>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(ViewBag.Message))
+        {
+            <div class="alert alert-success">@ViewBag.Message</div>
+        }
+    </div>
+}
+
+4.SQL Connection
+=> Web Config SqlServer Connection.
+<system.codedom>
+	<compilers>
+		<compiler language="c#;cs;csharp" extension=".cs" type="Microsoft.CodeDom.Providers.DotNetCompilerPlatform.CSharpCodeProvider, Microsoft.CodeDom.Providers.DotNetCompilerPlatform, Version=2.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" warningLevel="4" compilerOptions="/langversion:default /nowarn:1659;1699;1701" />
+		<compiler language="vb;vbs;visualbasic;vbscript" extension=".vb" type="Microsoft.CodeDom.Providers.DotNetCompilerPlatform.VBCodeProvider, Microsoft.CodeDom.Providers.DotNetCompilerPlatform, Version=2.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" warningLevel="4" compilerOptions="/langversion:default /nowarn:41008 /define:_MYTYPE=\&quot;Web\&quot; /optionInfer+" />
+	</compilers>
+</system.codedom>
+
+<connectionStrings>
+	<add name="HangfireConnection" connectionString="Server=DESKTOP-NATOEVE\SQLEXPRESS;Database=HangfireDb;Integrated Security=True;Trusted_Connection=True ;" providerName="System.Data.SqlClient" />
+</connectionStrings>
+
