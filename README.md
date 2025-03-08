@@ -51,8 +51,5 @@ Feel free to contribute! If you want to add a new topic, follow these steps:
 4. Push to your branch (`git push origin new-topic`)
 5. Create a Pull Request
 
-## License
-This repository is licensed under the **MIT License**.
-
 ## Contact
 For any queries, reach out to: [Sushil Thakur](mailto:sushilthakur9792@gmail.com)
